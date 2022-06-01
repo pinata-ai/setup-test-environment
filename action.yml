@@ -15,7 +15,7 @@ runs:
       - name: Set up Python
         uses: actions/setup-python@v1
         with:
-          python-version: ${{ secrets.PYTHON_VERSION }}
+          python-version: "3.9"
 
       - name: Cache pip
         uses: actions/cache@v2
