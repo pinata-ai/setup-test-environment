@@ -33,7 +33,5 @@ runs:
       - name: Install requirements
         shell: bash
         run: |
-          pip install uv
-          uv venv .venv --python 3.12
-          source .venv/bin/activate
-          uv pip install -r requirements.txt
+          python -m pip install uv
+          uv pip install --system -r requirements.txt
