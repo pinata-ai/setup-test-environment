@@ -2,6 +2,12 @@ name: Setup test environment
 
 description: Setup test environment to use in other actions
 
+inputs:
+  python-version:
+    description: "Python version passed to actions/setup-python"
+    required: false
+    default: "3.11"
+
 runs:
     using: "composite"
 
@@ -17,7 +23,7 @@ runs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ inputs.python-version }}
 
       - name: Cache deps
         uses: actions/cache@v4
