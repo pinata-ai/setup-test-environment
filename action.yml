@@ -7,6 +7,13 @@ inputs:
     description: "Python version passed to actions/setup-python"
     required: false
     default: "3.11"
+  fetch-tags:
+    description: >-
+      Unshallow the checkout and fetch tags. Off by default: on base-platform this pulls
+      ~120 MB / 11k commits / 364 tags and costs ~8s in every job that calls this action.
+      Enable it only for jobs that actually read git history or version tags.
+    required: false
+    default: "false"
 
 runs:
     using: "composite"
@@ -16,6 +23,7 @@ runs:
         uses: actions/checkout@v4
 
       - name: Check out tags
+        if: ${{ inputs.fetch-tags == 'true' }}
         shell: bash
         run: |
           git fetch --prune --unshallow --tags
@@ -25,16 +33,16 @@ runs:
         with:
           python-version: ${{ inputs.python-version }}
 
+      # Only uv's cache is worth keeping. `~/.cache/pip` was in here too, but pip is used
+      # for exactly one thing below (installing uv itself), so it only ever held a single
+      # wheel that re-downloads in under a second.
       - name: Cache deps
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/pip
-            ~/.cache/uv
-          key: ${{ runner.os }}-deps-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-v2-${{ hashFiles('uv.lock') }}
           restore-keys: |
-            ${{ runner.os }}-deps-
-            ${{ runner.os }}-
+            ${{ runner.os }}-uv-v2-
 
       - name: Install requirements
         shell: bash
@@ -42,3 +50,8 @@ runs:
           python -m pip install uv
           export UV_PROJECT_ENVIRONMENT="${pythonLocation}"
           uv sync --frozen --no-install-project --no-editable
+          # Keep the saved cache small. `--ci` drops pre-built wheels and unzipped source
+          # distributions -- both cheap to re-fetch -- and keeps wheels uv had to build from
+          # source, which are not. Without it the cache grew to ~1.2 GB (~70k files), which
+          # took 62s to untar in every job just to feed a `uv sync` that then ran in 3.5s.
+          uv cache prune --ci
